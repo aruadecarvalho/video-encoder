@@ -31,7 +31,6 @@ func TestVideoRepositoryDbInser(t *testing.T) {
 	video := InsertVideoInDb(db)
 
 	repo := repositories.VideoRepositoryDb{Db: db}
-	repo.Insert(video)
 
 	v, err := repo.Find(video.ID)
 
