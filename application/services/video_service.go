@@ -14,7 +14,7 @@ import (
 
 type VideoService struct {
 	Video           *domain.Video
-	VideoRepository *repositories.VideoRepository
+	VideoRepository repositories.VideoRepository
 }
 
 func NewVideoService() VideoService {
@@ -127,6 +127,15 @@ func (v *VideoService) Finish() error {
 
 	return nil
 
+}
+
+func (v VideoService) InsertVideo() error {
+	_, err := v.VideoRepository.Insert(v.Video)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getVideoPath(v *VideoService) string {
