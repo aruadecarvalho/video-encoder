@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"os"
+	"sync"
 	"time"
 	"video-encoder/domain"
 	"video-encoder/framework/utils"
@@ -17,6 +18,8 @@ type JobWorkerResult struct {
 	Error   error
 }
 
+var Mutex = &sync.Mutex{}
+
 func JobWorker(messageChannel chan amqp.Delivery, returnChannel chan JobWorkerResult, jobService JobService, job domain.Job, workerId int) {
 	for message := range messageChannel {
 		err := utils.IsJson(string(message.Body))
@@ -25,20 +28,25 @@ func JobWorker(messageChannel chan amqp.Delivery, returnChannel chan JobWorkerRe
 			continue
 		}
 
+		Mutex.Lock()
 		err = json.Unmarshal(message.Body, &jobService.VideoService.Video)
+		jobService.VideoService.Video.ID = uuid.NewV4().String()
+		Mutex.Unlock()
+
 		if err != nil {
 			returnChannel <- returnJobResult(domain.Job{}, message, err)
 			continue
 		}
 
-		jobService.VideoService.Video.ID = uuid.NewV4().String()
 		err = jobService.VideoService.Video.Validate()
 		if err != nil {
 			returnChannel <- returnJobResult(domain.Job{}, message, err)
 			continue
 		}
 
+		Mutex.Lock()
 		err = jobService.VideoService.InsertVideo()
+		Mutex.Unlock()
 		if err != nil {
 			returnChannel <- returnJobResult(domain.Job{}, message, err)
 			continue
@@ -50,7 +58,10 @@ func JobWorker(messageChannel chan amqp.Delivery, returnChannel chan JobWorkerRe
 		job.Status = "STARTING"
 		job.CreatedAt = time.Now()
 
+		Mutex.Lock()
 		_, err = jobService.JobRepository.Insert(&job)
+		Mutex.Unlock()
+
 		if err != nil {
 			returnChannel <- returnJobResult(domain.Job{}, message, err)
 			continue
