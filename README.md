@@ -1,6 +1,4 @@
-readme
-
-# Video encoding tool
+# video-encoder: A Golang Video Encoding Tool
 
 ## Setting up environment
 
